@@ -1,44 +1,84 @@
 # CardioScan — Heart Disease Risk Prediction
 
-A machine learning web application for early heart disease risk assessment.  
-Built as a BSc Data Science capstone project at USIU-Africa.
+> A machine learning web application for early cardiovascular risk assessment, built as a BSc Data Science capstone project at USIU-Africa.
 
-## Live Demo
+---
 
-🔗 **[Update this link after deploying to Render]**
+## 🔗 Live Demo
 
-> The server may take ~30 seconds to wake up after inactivity (free tier).
+**[https://cardioscan.onrender.com](https://cardioscan.onrender.com)**
+
+> The server may take ~30 seconds to wake up after inactivity on the free tier. It is not broken — just cold-starting.
 
 ---
 
 ## What it does
 
 Enter a patient's clinical values and CardioScan returns:
-- **Risk classification** — High / Low Risk with a probability score
-- **Key risk drivers** — which features drove the prediction
+
+- **Risk classification** — High Risk / Low Risk with a probability score
+- **Key risk drivers** — which features drove the prediction and by how much
 - **Model choice** — Logistic Regression, Random Forest, or XGBoost
 - **Dataset choice** — UCI Heart Disease or Kaggle Heart Failure
 
-The **Advanced Analytics** tab shows ROC curves, confusion matrices,
-cross-dataset generalisation, a demographic fairness audit, and
-SHAP-style local explanations.
+The **Advanced Analytics** tab provides a full research dashboard:
+
+| Tab | Contents |
+|---|---|
+| Model Performance | ROC curves, confusion matrices, model comparison charts, cross-dataset generalisation heatmap |
+| Feature Analysis | Permutation importance plot, SHAP-style local explanations for 3 representative patients |
+| Exploratory Data Analysis | 12 EDA visualisations covering class balance, distributions, correlations, and statistical significance |
+| Clinical Fairness | Demographic subgroup audit by age group and sex |
+
+A **downloadable PDF report** compiling all metrics, tables, and figures is available directly from the interface.
 
 ---
 
-## Performance
+## Model Performance
 
-| Dataset | Model | AUC-ROC |
+| Dataset | Model | AUC-ROC | F1-Score | Accuracy |
+|---|---|---|---|---|
+| UCI Heart Disease | **Logistic Regression** | **0.882** | **88.57%** | **86.89%** |
+| UCI Heart Disease | Random Forest | 0.827 | 80.00% | 77.05% |
+| UCI Heart Disease | XGBoost | 0.793 | 81.58% | 77.05% |
+| Kaggle Heart Failure | **Logistic Regression** | **0.916** | **83.51%** | **82.61%** |
+| Kaggle Heart Failure | Random Forest | 0.892 | 83.42% | 82.07% |
+| Kaggle Heart Failure | XGBoost | 0.892 | 82.23% | 80.98% |
+
+Logistic Regression is the recommended primary model due to its superior AUC-ROC and cross-dataset generalisation (3.66% AUC drop vs 11.02% for XGBoost).
+
+### Cross-Dataset Generalisation
+
+| Model | AUC Drop | Rating |
 |---|---|---|
-| UCI Heart Disease | Logistic Regression | **0.882** |
-| UCI Heart Disease | Random Forest | 0.827 |
-| UCI Heart Disease | XGBoost | 0.793 |
-| Kaggle Heart Failure | Logistic Regression | **0.916** |
-| Kaggle Heart Failure | Random Forest | 0.892 |
-| Kaggle Heart Failure | XGBoost | 0.892 |
+| Logistic Regression | 3.66% | Good |
+| Random Forest | 7.25% | Moderate |
+| XGBoost | 11.02% | Moderate |
+
+### Demographic Fairness Audit
+
+| Subgroup | N | Recall | F1-Score |
+|---|---|---|---|
+| Age < 50 | 58 | 64.00% | 74.42% |
+| Age 50–64 | 106 | 87.10% | 82.44% |
+| Age 65+ | 20 | 100.00% | 94.12% |
+| Male | 148 | 82.50% | 81.99% |
+| Female | 36 | 86.96% | 85.11% |
+
+> **Note:** The under-50 age group shows a meaningful performance gap (F1 = 74.42%) due to lower disease prevalence and atypical symptom presentation in younger patients. Clinical users should apply additional scrutiny for this demographic.
 
 ---
 
-## Run locally
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- Conda or pip
+
+### Installation
+
+**Option A — pip:**
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/cardioscan.git
@@ -48,28 +88,164 @@ python app.py
 # Open http://localhost:5000
 ```
 
-To retrain from scratch:
+**Option B — Conda:**
+
 ```bash
-python eda.py    # EDA plots (~10 sec)
-python train.py  # All models (~5-10 min)
+git clone https://github.com/YOUR_USERNAME/cardioscan.git
+cd cardioscan
+conda create -n cardioscan python=3.11
+conda activate cardioscan
+pip install -r requirements.txt
+python app.py
+```
+
+### Retrain models from scratch
+
+```bash
+python eda.py     # Regenerate EDA plots (~10 seconds)
+python train.py   # Retrain all models (~5-10 minutes)
+python app.py     # Start the app
+```
+
+> Models are saved to `models/` as `.pkl` files. If they are already present the app starts immediately without retraining.
+
+---
+
+## Project Structure
+
+```
+cardioscan/
+├── app.py                      # Flask server — run this to start
+├── train.py                    # Full training pipeline (all models + plots + PDF)
+├── eda.py                      # Exploratory data analysis plots
+├── requirements.txt            # Python dependencies
+├── render.yaml                 # Render deployment configuration
+├── .python-version             # Python version pin (3.11.0)
+│
+├── src/
+│   ├── preprocessing.py        # UCI and Kaggle preprocessing pipelines
+│   ├── models.py               # LR, RF, XGBoost training and evaluation
+│   ├── explainability.py       # Permutation importance and SHAP-style explanations
+│   ├── fairness.py             # Demographic fairness audit
+│   ├── report_generator.py     # Auto-generated PDF report (ReportLab)
+│   └── predict.py              # CLI prediction interface
+│
+├── data/
+│   ├── uci_heart.csv           # UCI Heart Disease dataset (303 records)
+│   └── kaggle_heart.csv        # Kaggle Heart Failure dataset (918 records)
+│
+├── models/                     # Trained model .pkl files (auto-generated by train.py)
+│   ├── uci_logistic_regression.pkl
+│   ├── uci_random_forest.pkl
+│   ├── uci_xgboost.pkl
+│   ├── uci_preprocessor.pkl
+│   ├── uci_preprocessor_clean.pkl
+│   ├── kaggle_logistic_regression.pkl
+│   ├── kaggle_random_forest.pkl
+│   ├── kaggle_xgboost.pkl
+│   ├── kaggle_preprocessor.pkl
+│   ├── model_auc.json
+│   └── model_thresholds.json
+│
+├── static/
+│   ├── index.html              # Main prediction UI
+│   ├── advanced.html           # Analytics dashboard
+│   ├── settings.html           # Settings page
+│   └── plots/                  # Generated plots (auto-populated by train.py and eda.py)
+│
+├── outputs/                    # Generated PDF reports
+└── tests/
+    └── test_pipeline.py        # Unit tests (uses real CSVs)
 ```
 
 ---
 
-## Stack
+## Tech Stack
 
-Python · Flask · scikit-learn · XGBoost · pandas · matplotlib · ReportLab
+| Layer | Technology |
+|---|---|
+| Web Framework | Flask 3.0 |
+| Machine Learning | scikit-learn, XGBoost |
+| Data Processing | pandas, NumPy |
+| Visualisation | matplotlib |
+| Explainability | Permutation importance (SHAP-style) |
+| PDF Generation | ReportLab |
+| Deployment | Render (free tier), gunicorn |
+| Language | Python 3.11 |
+
+---
+
+## Deployment on Render
+
+The repository is pre-configured for Render deployment via `render.yaml`.
+
+1. Push the repo to GitHub (include `models/*.pkl` and `static/plots/*.png`)
+2. Go to [render.com](https://render.com) → New → Web Service
+3. Connect your GitHub repo — Render auto-detects `render.yaml`
+4. Click **Deploy**
+
+> The retraining endpoint is disabled in cloud deployment to prevent memory exhaustion on the free tier. All prediction, analytics, and PDF download functionality remains fully operational.
 
 ---
 
 ## Datasets
 
-- [UCI Heart Disease](https://archive.ics.uci.edu/dataset/45/heart+disease) — 303 records, 13 features
-- [Kaggle Heart Failure](https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction) — 918 records, 11 features
+| Dataset | Records | Features | Licence | Link |
+|---|---|---|---|---|
+| UCI Heart Disease | 303 | 13 | CC BY 4.0 | [archive.ics.uci.edu](https://archive.ics.uci.edu/dataset/45/heart+disease) |
+| Kaggle Heart Failure | 918 | 11 | ODbL v1.0 | [kaggle.com](https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction) |
+
+### Licence Details
+
+**UCI Heart Disease Dataset**
+- Licence: [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
+- Usage: Pre-anonymised. Used for non-commercial academic research. Attribution acknowledged.
+
+**Kaggle Heart Failure Prediction Dataset**
+- Source: Soriano, F. (2022). Composite of 5 international sources (Cleveland, Hungarian, Switzerland, Long Beach VA, Statlog).
+- Licence: [Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/)
+- Usage: Pre-anonymised. Used as a training input (Produced Work under ODbL), not redistributed as a Derivative Database. The share-alike obligation under ODbL Section 4.4 does not apply. Attribution acknowledged.
+
+---
+
+## Running Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Tests use the real CSV files from `data/` and verify the 28-feature vs 20-feature preprocessor split, model loading, and threshold computation.
+
+---
+
+## Academic Context
+
+CardioScan was developed as a BSc Data Science final-year capstone project at United States International University - Africa (USIU-Africa), supervised by Prof Verah Otiende.
+
+The study adopted a **Design Science Research (DSR)** methodology and evaluated models across five formal criteria: predictive accuracy, model stability, cross-population generalisation, clinical interpretability, and demographic fairness.
+
+Full academic report available in the repository.
 
 ---
 
 ## Disclaimer
 
-Research prototype for academic purposes only. Not a medical device.  
-Do not use for clinical diagnosis. Always consult a qualified clinician.
+CardioScan is a **research prototype for academic purposes only**.
+
+It is not a medical device and has not been approved for clinical use. Do not use it for clinical diagnosis or as a substitute for professional medical judgment. Always consult a qualified healthcare professional for any medical decisions.
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/YourFeature`)
+3. Commit your changes (`git commit -m 'Add YourFeature'`)
+4. Push to the branch (`git push origin feature/YourFeature`)
+5. Open a Pull Request
+
+---
+
+*Built with Python, Flask, scikit-learn, and a lot of coffee.*
